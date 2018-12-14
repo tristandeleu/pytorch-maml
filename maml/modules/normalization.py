@@ -3,9 +3,10 @@ import torch.nn.functional as F
 
 from collections import OrderedDict
 from torch._jit_internal import weak_module, weak_script_method
+from maml.modules.module import MetaModule
 
 @weak_module
-class MetaLayerNorm(nn.LayerNorm):
+class MetaLayerNorm(nn.LayerNorm, MetaModule):
     @weak_script_method
     def forward(self, input, params=None):
         if params is None:

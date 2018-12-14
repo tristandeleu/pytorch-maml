@@ -3,9 +3,10 @@ import torch.nn.functional as F
 from collections import OrderedDict
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch._jit_internal import weak_module, weak_script_method
+from maml.modules.module import MetaModule
 
 @weak_module
-class _MetaBatchNorm(_BatchNorm):
+class _MetaBatchNorm(_BatchNorm, MetaModule):
     @weak_script_method
     def forward(self, input, params=None):
         self._check_input_dim(input)

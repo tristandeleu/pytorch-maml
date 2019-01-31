@@ -5,11 +5,13 @@ import torch.multiprocessing as mp
 from collections import OrderedDict
 
 class ModelAgnosticMetaLearning(object):
-    def __init__(self, model, optimizer, step_size=0.1, learn_step_size=True,
-                 per_param_step_size=True, scheduler=None, num_workers=4):        
+    def __init__(self, model, optimizer, step_size=0.1, first_order=False,
+                 learn_step_size=True, per_param_step_size=True,
+                 scheduler=None, num_workers=4):
         self.model = model
         self.optimizer = optimizer
         self.step_size = step_size
+        self.first_order = first_order
         self.num_workers = num_workers
         self.scheduler = scheduler
 
@@ -44,7 +46,8 @@ class ModelAgnosticMetaLearning(object):
         inner_loss = self.get_inner_loss(*batch.train)
         outer_loss = torch.tensor(0.)
         for task_id, (test_inputs, test_targets) in enumerate(zip(*batch.test)):
-            params = self.model.update_params(inner_loss[task_id])
+            params = self.model.update_params(inner_loss[task_id],
+                step_size=self.step_size, first_order=self.first_order)
             test_logits = self.model(test_inputs, params=params)
             outer_loss += F.cross_entropy(test_logits, test_targets)
         outer_loss.div_(test_targets.size(0))

@@ -18,7 +18,7 @@ class MetaModule(nn.Module):
 
     def update_params(self, loss, step_size=0.5, first_order=False, out=None):
         grads = torch.autograd.grad(loss, self.meta_parameters(),
-            create_graph=not first_order)
+            create_graph=not first_order, retain_graph=True)
         if out is None:
             out = OrderedDict()
         if not isinstance(step_size, dict):

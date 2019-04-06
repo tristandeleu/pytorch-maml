@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import torch.multiprocessing as mp
 
 from collections import OrderedDict
+from maml.utils import update_parameters
 
 class ModelAgnosticMetaLearning(object):
     def __init__(self, model, optimizer, step_size=0.1, first_order=False,
@@ -49,7 +50,7 @@ class ModelAgnosticMetaLearning(object):
         inner_loss = self.get_inner_loss(*batch['train'])
         outer_loss = torch.tensor(0.)
         for task_id, (test_inputs, test_targets) in enumerate(zip(*batch['test'])):
-            params = self.model.update_params(inner_loss[task_id],
+            params = update_parameters(self.model, inner_loss[task_id],
                 step_size=self.step_size, first_order=self.first_order)
             test_logits = self.model(test_inputs, params=params)
             outer_loss += self.loss_function(test_logits, test_targets)
@@ -68,8 +69,10 @@ class ModelAgnosticMetaLearning(object):
 
                 self.model.train()
                 self.optimizer.zero_grad()
+
                 outer_loss = self.get_outer_loss(batch)
                 yield outer_loss
+
                 outer_loss.backward()
                 self.optimizer.step()
 

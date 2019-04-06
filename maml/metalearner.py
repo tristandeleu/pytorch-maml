@@ -3,36 +3,37 @@ import torch.nn.functional as F
 import torch.multiprocessing as mp
 
 from collections import OrderedDict
-from maml.utils import update_parameters
+from maml.utils import update_parameters, tensors_to_device
 
 class ModelAgnosticMetaLearning(object):
     def __init__(self, model, optimizer, step_size=0.1, first_order=False,
                  learn_step_size=True, per_param_step_size=True,
-                 scheduler=None, loss_function=F.cross_entropy, num_workers=4):
-        self.model = model
+                 scheduler=None, loss_function=F.cross_entropy, num_workers=4,
+                 device=None):
+        self.model = model.to(device=device)
         self.optimizer = optimizer
         self.step_size = step_size
         self.first_order = first_order
         self.num_workers = num_workers
         self.scheduler = scheduler
         self.loss_function = loss_function
+        self.device = device
 
         if per_param_step_size:
             self.step_size = OrderedDict((name, torch.tensor(step_size,
-                dtype=param.dtype, device=param.device,
+                dtype=param.dtype, device=self.device,
                 requires_grad=learn_step_size)) for (name, param)
                 in model.meta_named_parameters())
         else:
             # TODO: model.device doesn't exist, find an alternative
             # QKFIX: device=None instead of device=model.device
             step_size_tensor = torch.tensor(step_size, dtype=torch.float32,
-                device=None, requires_grad=learn_step_size)
+                device=self.device, requires_grad=learn_step_size)
             self.step_size = OrderedDict((name, step_size_tensor)
                 for (name, _) in model.meta_named_parameters())
 
         if learn_step_size:
-            self.optimizer.add_param_group({'params': self.step_size.values()
-                if per_param_step_size else [self.step_size]})
+            self.optimizer.add_param_group({'params': self.step_size.values()})
             if scheduler is not None:
                 for group in self.optimizer.param_groups:
                     group.setdefault('initial_lr', group['lr'])
@@ -76,6 +77,7 @@ class ModelAgnosticMetaLearning(object):
                 self.model.train()
                 self.optimizer.zero_grad()
 
+                batch = tensors_to_device(batch, device=self.device)
                 outer_loss = self.get_outer_loss(batch)
                 yield outer_loss
 

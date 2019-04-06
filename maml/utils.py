@@ -17,3 +17,15 @@ def update_parameters(model, loss, step_size=0.5, first_order=False, out=None):
         out[name] = param - step_size[name] * grad
 
     return out
+
+def tensors_to_device(tensors, device=torch.device('cpu')):
+    if isinstance(tensors, torch.Tensor):
+        return tensors.to(device=device)
+    elif isinstance(tensors, (list, tuple)):
+        return type(tensors)(tensors_to_device(tensor)
+            for tensor in tensors)
+    elif isinstance(tensors, (dict, OrderedDict)):
+        return type(tensors)([(name, tensors_to_device(tensor))
+            for (name, tensor) in tensors.items()])
+    else:
+        raise NotImplementedError()

@@ -58,6 +58,10 @@ class ModelAgnosticMetaLearning(object):
         return outer_loss
 
     def train(self, dataloader, max_batches=500):
+        for loss in self.train_iter(dataloader, max_batches=max_batches):
+            pass
+
+    def train_iter(self, dataloader, max_batches=500):
         num_batches = 0
         while num_batches < max_batches:
             for batch in dataloader:

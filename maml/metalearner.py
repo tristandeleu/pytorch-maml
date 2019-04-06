@@ -43,12 +43,12 @@ class ModelAgnosticMetaLearning(object):
         return inner_loss
 
     def get_outer_loss(self, batch):
-        if batch.test is None:
+        if batch['test'] is None:
             raise RuntimeError('The batch does not contain any test dataset.')
 
-        inner_loss = self.get_inner_loss(*batch.train)
+        inner_loss = self.get_inner_loss(*batch['train'])
         outer_loss = torch.tensor(0.)
-        for task_id, (test_inputs, test_targets) in enumerate(zip(*batch.test)):
+        for task_id, (test_inputs, test_targets) in enumerate(zip(*batch['test'])):
             params = self.model.update_params(inner_loss[task_id],
                 step_size=self.step_size, first_order=self.first_order)
             test_logits = self.model(test_inputs, params=params)

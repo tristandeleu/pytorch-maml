@@ -7,13 +7,14 @@ from collections import OrderedDict
 class ModelAgnosticMetaLearning(object):
     def __init__(self, model, optimizer, step_size=0.1, first_order=False,
                  learn_step_size=True, per_param_step_size=True,
-                 scheduler=None, num_workers=4):
+                 scheduler=None, loss_function=F.cross_entropy, num_workers=4):
         self.model = model
         self.optimizer = optimizer
         self.step_size = step_size
         self.first_order = first_order
         self.num_workers = num_workers
         self.scheduler = scheduler
+        self.loss_function = loss_function
 
         if per_param_step_size:
             self.step_size = OrderedDict((name, torch.tensor(step_size,
@@ -21,8 +22,10 @@ class ModelAgnosticMetaLearning(object):
                 requires_grad=learn_step_size)) for (name, param)
                 in model.meta_named_parameters())
         else:
+            # TODO: model.device doesn't exist, find an alternative
+            # QKFIX: device=None instead of device=model.device
             self.step_size = torch.tensor(step_size, dtype=torch.float32,
-                device=model.device, requires_grad=learn_step_size)
+                device=None, requires_grad=learn_step_size)
 
         if learn_step_size:
             self.optimizer.add_param_group({'params': self.step_size.values()
@@ -35,7 +38,7 @@ class ModelAgnosticMetaLearning(object):
 
     def get_inner_loss(self, inputs, targets):
         logits = self.model(inputs.view(-1, *inputs.shape[2:]))
-        inner_loss = F.cross_entropy(logits, targets.view(-1), reduction='none')
+        inner_loss = self.loss_function(logits, targets.view(-1), reduction='none')
         inner_loss = torch.mean(inner_loss.view_as(targets), dim=1)
         return inner_loss
 
@@ -49,7 +52,7 @@ class ModelAgnosticMetaLearning(object):
             params = self.model.update_params(inner_loss[task_id],
                 step_size=self.step_size, first_order=self.first_order)
             test_logits = self.model(test_inputs, params=params)
-            outer_loss += F.cross_entropy(test_logits, test_targets)
+            outer_loss += self.loss_function(test_logits, test_targets)
         outer_loss.div_(test_targets.size(0))
         return outer_loss
 

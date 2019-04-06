@@ -25,8 +25,10 @@ class ModelAgnosticMetaLearning(object):
         else:
             # TODO: model.device doesn't exist, find an alternative
             # QKFIX: device=None instead of device=model.device
-            self.step_size = torch.tensor(step_size, dtype=torch.float32,
+            step_size_tensor = torch.tensor(step_size, dtype=torch.float32,
                 device=None, requires_grad=learn_step_size)
+            self.step_size = OrderedDict((name, step_size_tensor)
+                for (name, _) in model.meta_named_parameters())
 
         if learn_step_size:
             self.optimizer.add_param_group({'params': self.step_size.values()

@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+import numpy as np
 from tqdm import tqdm
 
 from collections import OrderedDict
@@ -47,29 +48,43 @@ class ModelAgnosticMetaLearning(object):
         if 'test' not in batch:
             raise RuntimeError('The batch does not contain any test dataset.')
 
+        num_tasks = batch['test'][1].size(0)
+        results = {
+            'num_tasks': num_tasks,
+            'inner_losses': np.zeros((self.num_adaptation_steps,
+                num_tasks), dtype=np.float32),
+            'outer_losses': np.zeros((num_tasks,), dtype=np.float32),
+            'mean_outer_loss': 0.
+        }
+
         outer_loss = torch.tensor(0., device=self.device)
-        for train_inputs, train_targets, test_inputs, test_targets \
-                in zip(*batch['train'], *batch['test']):
+        for task_id, (train_inputs, train_targets, test_inputs, test_targets) \
+                in enumerate(zip(*batch['train'], *batch['test'])):
             params = None
             for step in range(self.num_adaptation_steps):
                 inner_loss = self.get_inner_loss(train_inputs,
                     train_targets, params=params)
+                results['inner_losses'][step, task_id] = inner_loss.item()
 
                 self.model.zero_grad()
                 params = update_parameters(self.model, inner_loss,
                     step_size=self.step_size, first_order=self.first_order)
 
             test_logits = self.model(test_inputs, params=params)
-            outer_loss += self.loss_function(test_logits, test_targets)
-        outer_loss.div_(test_targets.size(0))
+            outer_loss_ = self.loss_function(test_logits, test_targets)
+            results['outer_losses'][task_id] = outer_loss_.item()
+            outer_loss += outer_loss_
 
-        return outer_loss
+        outer_loss.div_(num_tasks)
+        results['mean_outer_loss'] = outer_loss.item()
+
+        return outer_loss, results
 
     def train(self, dataloader, max_batches=500, verbose=True):
         with tqdm(total=max_batches, disable=not verbose) as pbar:
-            for loss in self.train_iter(dataloader, max_batches=max_batches):
+            for results in self.train_iter(dataloader, max_batches=max_batches):
                 pbar.update(1)
-                pbar.set_postfix(loss='{0:.4f}'.format(loss.item()))
+                pbar.set_postfix(loss='{0:.4f}'.format(results['mean_outer_loss']))
 
     def train_iter(self, dataloader, max_batches=500):
         num_batches = 0
@@ -85,8 +100,8 @@ class ModelAgnosticMetaLearning(object):
                 self.optimizer.zero_grad()
 
                 batch = tensors_to_device(batch, device=self.device)
-                outer_loss = self.get_outer_loss(batch)
-                yield outer_loss
+                outer_loss, results = self.get_outer_loss(batch)
+                yield results
 
                 outer_loss.backward()
                 self.optimizer.step()

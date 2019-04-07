@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-import torch.multiprocessing as mp
+from tqdm import tqdm
 
 from collections import OrderedDict
 from maml.utils import update_parameters, tensors_to_device
@@ -66,8 +66,10 @@ class ModelAgnosticMetaLearning(object):
         return outer_loss
 
     def train(self, dataloader, max_batches=500):
-        for loss in self.train_iter(dataloader, max_batches=max_batches):
-            pass
+        with tqdm(total=max_batches) as pbar:
+            for loss in self.train_iter(dataloader, max_batches=max_batches):
+                pbar.update(1)
+                pbar.set_postfix(loss='{0:.4f}'.format(loss.item()))
 
     def train_iter(self, dataloader, max_batches=500):
         num_batches = 0

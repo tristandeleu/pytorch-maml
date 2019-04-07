@@ -124,6 +124,7 @@ class ModelAgnosticMetaLearning(object):
                     break
 
                 self.model.eval()
+                batch = tensors_to_device(batch, device=self.device)
                 _, results = self.get_outer_loss(batch)
                 yield results
 

@@ -68,12 +68,14 @@ class ModelAgnosticMetaLearning(object):
 
                 self.model.zero_grad()
                 params = update_parameters(self.model, inner_loss,
-                    step_size=self.step_size, first_order=self.first_order)
+                    step_size=self.step_size,
+                    first_order=self.model.training and self.first_order)
 
-            test_logits = self.model(test_inputs, params=params)
-            outer_loss_ = self.loss_function(test_logits, test_targets)
-            results['outer_losses'][task_id] = outer_loss_.item()
-            outer_loss += outer_loss_
+            with torch.set_grad_enabled(self.model.training):
+                test_logits = self.model(test_inputs, params=params)
+                outer_loss_ = self.loss_function(test_logits, test_targets)
+                results['outer_losses'][task_id] = outer_loss_.item()
+                outer_loss += outer_loss_
 
         outer_loss.div_(num_tasks)
         results['mean_outer_loss'] = outer_loss.item()
@@ -105,5 +107,24 @@ class ModelAgnosticMetaLearning(object):
 
                 outer_loss.backward()
                 self.optimizer.step()
+
+                num_batches += 1
+
+    def evaluate(self, dataloader, max_batches=500, verbose=True):
+        with tqdm(total=max_batches, disable=not verbose) as pbar:
+            for results in self.evaluate_iter(dataloader, max_batches=max_batches):
+                pbar.update(1)
+                pbar.set_postfix(loss='{0:.4f}'.format(results['mean_outer_loss']))
+
+    def evaluate_iter(self, dataloader, max_batches=500):
+        num_batches = 0
+        while num_batches < max_batches:
+            for batch in dataloader:
+                if num_batches >= max_batches:
+                    break
+
+                self.model.eval()
+                _, results = self.get_outer_loss(batch)
+                yield results
 
                 num_batches += 1

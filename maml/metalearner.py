@@ -40,10 +40,9 @@ class ModelAgnosticMetaLearning(object):
                 self.scheduler.base_lrs([group['initial_lr']
                     for group in self.optimizer.param_groups])
 
-    def get_inner_loss(self, inputs, targets):
-        logits = self.model(inputs.view(-1, *inputs.shape[2:]))
-        inner_loss = self.loss_function(logits, targets.view(-1), reduction='none')
-        inner_loss = torch.mean(inner_loss.view_as(targets), dim=1)
+    def get_inner_loss(self, inputs, targets, params=None):
+        logits = self.model(inputs, params=params)
+        inner_loss = self.loss_function(logits, targets)
         return inner_loss
 
     def get_outer_loss(self, batch):
@@ -52,9 +51,11 @@ class ModelAgnosticMetaLearning(object):
 
         inner_loss = self.get_inner_loss(*batch['train'])
         outer_loss = torch.tensor(0., device=self.device)
-        for task_id, (test_inputs, test_targets) in enumerate(zip(*batch['test'])):
+        for train_inputs, train_targets, test_inputs, test_targets \
+                in zip(*batch['train'], *batch['test']):
+            inner_loss = self.get_inner_loss(train_inputs, train_targets)
             self.model.zero_grad()
-            params = update_parameters(self.model, inner_loss[task_id],
+            params = update_parameters(self.model, inner_loss,
                 step_size=self.step_size, first_order=self.first_order)
             test_logits = self.model(test_inputs, params=params)
             outer_loss += self.loss_function(test_logits, test_targets)

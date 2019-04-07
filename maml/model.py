@@ -7,8 +7,8 @@ from maml.modules.utils import get_subdict
 
 def conv_block(in_channels, out_channels, **kwargs):
     return MetaSequential(OrderedDict([
-        ('norm', nn.BatchNorm2d(in_channels)),
         ('conv', MetaConv2d(in_channels, out_channels, **kwargs)),
+        ('norm', nn.BatchNorm2d(out_channels)),
         ('relu', nn.LeakyReLU())
     ]))
 

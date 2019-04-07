@@ -8,13 +8,13 @@ from maml.utils import update_parameters, tensors_to_device
 class ModelAgnosticMetaLearning(object):
     def __init__(self, model, optimizer, step_size=0.1, first_order=False,
                  learn_step_size=True, per_param_step_size=True,
-                 scheduler=None, loss_function=F.cross_entropy, num_workers=4,
-                 device=None):
+                 num_adaptation_steps=1, scheduler=None,
+                 loss_function=F.cross_entropy, device=None):
         self.model = model.to(device=device)
         self.optimizer = optimizer
         self.step_size = step_size
         self.first_order = first_order
-        self.num_workers = num_workers
+        self.num_adaptation_steps = num_adaptation_steps
         self.scheduler = scheduler
         self.loss_function = loss_function
         self.device = device
@@ -46,19 +46,25 @@ class ModelAgnosticMetaLearning(object):
         return inner_loss
 
     def get_outer_loss(self, batch):
-        if batch['test'] is None:
+        if 'test' not in batch:
             raise RuntimeError('The batch does not contain any test dataset.')
 
         outer_loss = torch.tensor(0., device=self.device)
         for train_inputs, train_targets, test_inputs, test_targets \
                 in zip(*batch['train'], *batch['test']):
-            inner_loss = self.get_inner_loss(train_inputs, train_targets)
-            self.model.zero_grad()
-            params = update_parameters(self.model, inner_loss,
-                step_size=self.step_size, first_order=self.first_order)
+            params = None
+            for step in range(self.num_adaptation_steps):
+                inner_loss = self.get_inner_loss(train_inputs,
+                    train_targets, params=params)
+
+                self.model.zero_grad()
+                params = update_parameters(self.model, inner_loss,
+                    step_size=self.step_size, first_order=self.first_order)
+
             test_logits = self.model(test_inputs, params=params)
             outer_loss += self.loss_function(test_logits, test_targets)
         outer_loss.div_(test_targets.size(0))
+
         return outer_loss
 
     def train(self, dataloader, max_batches=500):

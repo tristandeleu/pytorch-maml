@@ -53,6 +53,7 @@ class ModelAgnosticMetaLearning(object):
         inner_loss = self.get_inner_loss(*batch['train'])
         outer_loss = torch.tensor(0., device=self.device)
         for task_id, (test_inputs, test_targets) in enumerate(zip(*batch['test'])):
+            self.model.zero_grad()
             params = update_parameters(self.model, inner_loss[task_id],
                 step_size=self.step_size, first_order=self.first_order)
             test_logits = self.model(test_inputs, params=params)

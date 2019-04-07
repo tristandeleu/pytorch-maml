@@ -7,7 +7,7 @@ def update_parameters(model, loss, step_size=0.5, first_order=False, out=None):
     if not isinstance(model, MetaModule):
         raise ValueError()
     grads = torch.autograd.grad(loss, model.meta_parameters(),
-        create_graph=not first_order, retain_graph=True)
+        create_graph=not first_order)
     if out is None:
         out = OrderedDict()
     if not isinstance(step_size, dict):

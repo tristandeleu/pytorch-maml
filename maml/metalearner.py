@@ -65,8 +65,8 @@ class ModelAgnosticMetaLearning(object):
 
         return outer_loss
 
-    def train(self, dataloader, max_batches=500):
-        with tqdm(total=max_batches) as pbar:
+    def train(self, dataloader, max_batches=500, verbose=True):
+        with tqdm(total=max_batches, disable=not verbose) as pbar:
             for loss in self.train_iter(dataloader, max_batches=max_batches):
                 pbar.update(1)
                 pbar.set_postfix(loss='{0:.4f}'.format(loss.item()))

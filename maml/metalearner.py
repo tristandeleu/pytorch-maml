@@ -102,8 +102,8 @@ class ModelAgnosticMetaLearning(object):
                 pbar.update(1)
                 postfix = {'loss': '{0:.4f}'.format(results['mean_outer_loss'])}
                 if 'accuracies_after' in results:
-                    postfix.update({'accuracy': '{0:.4f}'.format(
-                        np.mean(results['accuracies_after']))})
+                    postfix['accuracy'] = '{0:.4f}'.format(
+                        np.mean(results['accuracies_after']))
                 pbar.set_postfix(**postfix)
 
     def train_iter(self, dataloader, max_batches=500):
@@ -140,8 +140,8 @@ class ModelAgnosticMetaLearning(object):
                 pbar.update(1)
                 postfix = {'loss': '{0:.4f}'.format(results['mean_outer_loss'])}
                 if 'accuracies_after' in results:
-                    postfix.update({'accuracy': '{0:.4f}'.format(
-                        np.mean(results['accuracies_after']))})
+                    postfix['accuracy'] = '{0:.4f}'.format(
+                        np.mean(results['accuracies_after']))
                 pbar.set_postfix(**postfix)
 
     def evaluate_iter(self, dataloader, max_batches=500):

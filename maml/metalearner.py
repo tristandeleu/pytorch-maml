@@ -7,8 +7,8 @@ from collections import OrderedDict
 from maml.utils import update_parameters, tensors_to_device
 
 class ModelAgnosticMetaLearning(object):
-    def __init__(self, model, optimizer, step_size=0.1, first_order=False,
-                 learn_step_size=True, per_param_step_size=True,
+    def __init__(self, model, optimizer=None, step_size=0.1, first_order=False,
+                 learn_step_size=False, per_param_step_size=False,
                  num_adaptation_steps=1, scheduler=None,
                  loss_function=F.cross_entropy, device=None):
         self.model = model.to(device=device)
@@ -31,7 +31,7 @@ class ModelAgnosticMetaLearning(object):
             self.step_size = OrderedDict((name, step_size_tensor)
                 for (name, _) in model.meta_named_parameters())
 
-        if learn_step_size:
+        if (self.optimizer is not None) and learn_step_size:
             self.optimizer.add_param_group({'params': self.step_size.values()})
             if scheduler is not None:
                 for group in self.optimizer.param_groups:
@@ -89,6 +89,12 @@ class ModelAgnosticMetaLearning(object):
                 pbar.set_postfix(loss='{0:.4f}'.format(results['mean_outer_loss']))
 
     def train_iter(self, dataloader, max_batches=500):
+        if self.optimizer is None:
+            raise RuntimeError('Trying to call `train_iter`, while the '
+                'optimizer is `None`. In order to train `{0}`, you must '
+                'specify a Pytorch optimizer as the argument of `{0}` '
+                '(eg. `{0}(model, optimizer=torch.optim.SGD(model.'
+                'parameters(), lr=0.01), ...).'.format(__class__.__name__))
         num_batches = 0
         while num_batches < max_batches:
             for batch in dataloader:

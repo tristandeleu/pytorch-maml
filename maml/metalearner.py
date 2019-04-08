@@ -39,11 +39,6 @@ class ModelAgnosticMetaLearning(object):
                 self.scheduler.base_lrs([group['initial_lr']
                     for group in self.optimizer.param_groups])
 
-    def get_inner_loss(self, inputs, targets, params=None):
-        logits = self.model(inputs, params=params)
-        inner_loss = self.loss_function(logits, targets)
-        return inner_loss
-
     def get_outer_loss(self, batch):
         if 'test' not in batch:
             raise RuntimeError('The batch does not contain any test dataset.')
@@ -57,13 +52,13 @@ class ModelAgnosticMetaLearning(object):
             'mean_outer_loss': 0.
         }
 
-        outer_loss = torch.tensor(0., device=self.device)
+        mean_outer_loss = torch.tensor(0., device=self.device)
         for task_id, (train_inputs, train_targets, test_inputs, test_targets) \
                 in enumerate(zip(*batch['train'], *batch['test'])):
             params = None
             for step in range(self.num_adaptation_steps):
-                inner_loss = self.get_inner_loss(train_inputs,
-                    train_targets, params=params)
+                train_logits = self.model(train_inputs, params=params)
+                inner_loss = self.loss_function(train_logits, train_targets)
                 results['inner_losses'][step, task_id] = inner_loss.item()
 
                 self.model.zero_grad()
@@ -73,14 +68,14 @@ class ModelAgnosticMetaLearning(object):
 
             with torch.set_grad_enabled(self.model.training):
                 test_logits = self.model(test_inputs, params=params)
-                outer_loss_ = self.loss_function(test_logits, test_targets)
-                results['outer_losses'][task_id] = outer_loss_.item()
-                outer_loss += outer_loss_
+                outer_loss = self.loss_function(test_logits, test_targets)
+                results['outer_losses'][task_id] = outer_loss.item()
+                mean_outer_loss += outer_loss
 
-        outer_loss.div_(num_tasks)
-        results['mean_outer_loss'] = outer_loss.item()
+        mean_outer_loss.div_(num_tasks)
+        results['mean_outer_loss'] = mean_outer_loss.item()
 
-        return outer_loss, results
+        return mean_outer_loss, results
 
     def train(self, dataloader, max_batches=500, verbose=True):
         with tqdm(total=max_batches, disable=not verbose) as pbar:

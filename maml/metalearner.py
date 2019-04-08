@@ -72,7 +72,7 @@ class ModelAgnosticMetaLearning(object):
                     with torch.no_grad():
                         _, train_predictions = torch.max(train_logits, dim=1)
                         accuracy = torch.mean(train_predictions.eq(train_targets).float())
-                        results['accuracies_before'] = accuracy.item()
+                        results['accuracies_before'][task_id] = accuracy.item()
 
                 self.model.zero_grad()
                 params = update_parameters(self.model, inner_loss,
@@ -89,7 +89,7 @@ class ModelAgnosticMetaLearning(object):
                 with torch.no_grad():
                     _, test_predictions = torch.max(test_logits, dim=1)
                     accuracy = torch.mean(test_predictions.eq(test_targets).float())
-                    results['accuracies_after'] = accuracy.item()
+                    results['accuracies_after'][task_id] = accuracy.item()
 
         mean_outer_loss.div_(num_tasks)
         results['mean_outer_loss'] = mean_outer_loss.item()
@@ -102,7 +102,8 @@ class ModelAgnosticMetaLearning(object):
                 pbar.update(1)
                 postfix = {'loss': '{0:.4f}'.format(results['mean_outer_loss'])}
                 if 'accuracies_after' in results:
-                    postfix.update({'accuracy': '{0:.4f}'.format(results['accuracies_after'])})
+                    postfix.update({'accuracy': '{0:.4f}'.format(
+                        np.mean(results['accuracies_after']))})
                 pbar.set_postfix(**postfix)
 
     def train_iter(self, dataloader, max_batches=500):
@@ -139,7 +140,8 @@ class ModelAgnosticMetaLearning(object):
                 pbar.update(1)
                 postfix = {'loss': '{0:.4f}'.format(results['mean_outer_loss'])}
                 if 'accuracies_after' in results:
-                    postfix.update({'accuracy': '{0:.4f}'.format(results['accuracies_after'])})
+                    postfix.update({'accuracy': '{0:.4f}'.format(
+                        np.mean(results['accuracies_after']))})
                 pbar.set_postfix(**postfix)
 
     def evaluate_iter(self, dataloader, max_batches=500):

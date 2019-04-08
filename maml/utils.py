@@ -3,16 +3,21 @@ import torch
 from collections import OrderedDict
 from maml.modules import MetaModule
 
-def update_parameters(model, loss, step_size=0.5, first_order=False):
+def update_parameters(model, loss, params=None, step_size=0.5, first_order=False):
     if not isinstance(model, MetaModule):
         raise ValueError()
     grads = torch.autograd.grad(loss, model.meta_parameters(),
         create_graph=not first_order)
+
+    if params is None:
+        params = OrderedDict(model.meta_named_parameters())
     out = OrderedDict()
+
     if not isinstance(step_size, dict):
         step_size = OrderedDict((name, step_size)
             for (name, _) in model.meta_named_parameters())
-    for (name, param), grad in zip(model.meta_named_parameters(), grads):
+
+    for (name, param), grad in zip(params.items(), grads):
         out[name] = param - step_size[name] * grad
 
     return out

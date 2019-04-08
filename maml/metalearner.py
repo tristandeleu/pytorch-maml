@@ -43,7 +43,9 @@ class ModelAgnosticMetaLearning(object):
         if 'test' not in batch:
             raise RuntimeError('The batch does not contain any test dataset.')
 
-        num_tasks = batch['test'][1].size(0)
+        _, test_targets = batch['test']
+        num_tasks = test_targets.size(0)
+        is_classification_task = (not test_targets.dtype.is_floating_point)
         results = {
             'num_tasks': num_tasks,
             'inner_losses': np.zeros((self.num_adaptation_steps,
@@ -51,6 +53,11 @@ class ModelAgnosticMetaLearning(object):
             'outer_losses': np.zeros((num_tasks,), dtype=np.float32),
             'mean_outer_loss': 0.
         }
+        if is_classification_task:
+            results.update({
+                'accuracies_before': np.zeros((num_tasks,), dtype=np.float32),
+                'accuracies_after': np.zeros((num_tasks,), dtype=np.float32)
+            })
 
         mean_outer_loss = torch.tensor(0., device=self.device)
         for task_id, (train_inputs, train_targets, test_inputs, test_targets) \
@@ -60,6 +67,12 @@ class ModelAgnosticMetaLearning(object):
                 train_logits = self.model(train_inputs, params=params)
                 inner_loss = self.loss_function(train_logits, train_targets)
                 results['inner_losses'][step, task_id] = inner_loss.item()
+
+                if (step == 0) and is_classification_task:
+                    with torch.no_grad():
+                        _, train_predictions = torch.max(train_logits, dim=1)
+                        accuracy = torch.mean(train_predictions.eq(train_targets).float())
+                        results['accuracies_before'] = accuracy.item()
 
                 self.model.zero_grad()
                 params = update_parameters(self.model, inner_loss,
@@ -72,6 +85,12 @@ class ModelAgnosticMetaLearning(object):
                 results['outer_losses'][task_id] = outer_loss.item()
                 mean_outer_loss += outer_loss
 
+            if is_classification_task:
+                with torch.no_grad():
+                    _, test_predictions = torch.max(test_logits, dim=1)
+                    accuracy = torch.mean(test_predictions.eq(test_targets).float())
+                    results['accuracies_after'] = accuracy.item()
+
         mean_outer_loss.div_(num_tasks)
         results['mean_outer_loss'] = mean_outer_loss.item()
 
@@ -81,7 +100,10 @@ class ModelAgnosticMetaLearning(object):
         with tqdm(total=max_batches, disable=not verbose) as pbar:
             for results in self.train_iter(dataloader, max_batches=max_batches):
                 pbar.update(1)
-                pbar.set_postfix(loss='{0:.4f}'.format(results['mean_outer_loss']))
+                postfix = {'loss': '{0:.4f}'.format(results['mean_outer_loss'])}
+                if 'accuracies_after' in results:
+                    postfix.update({'accuracy': '{0:.4f}'.format(results['accuracies_after'])})
+                pbar.set_postfix(**postfix)
 
     def train_iter(self, dataloader, max_batches=500):
         if self.optimizer is None:
@@ -115,7 +137,10 @@ class ModelAgnosticMetaLearning(object):
         with tqdm(total=max_batches, disable=not verbose) as pbar:
             for results in self.evaluate_iter(dataloader, max_batches=max_batches):
                 pbar.update(1)
-                pbar.set_postfix(loss='{0:.4f}'.format(results['mean_outer_loss']))
+                postfix = {'loss': '{0:.4f}'.format(results['mean_outer_loss'])}
+                if 'accuracies_after' in results:
+                    postfix.update({'accuracy': '{0:.4f}'.format(results['accuracies_after'])})
+                pbar.set_postfix(**postfix)
 
     def evaluate_iter(self, dataloader, max_batches=500):
         num_batches = 0

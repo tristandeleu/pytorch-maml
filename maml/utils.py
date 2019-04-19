@@ -13,12 +13,12 @@ def update_parameters(model, loss, params=None, step_size=0.5, first_order=False
         params = OrderedDict(model.meta_named_parameters())
     out = OrderedDict()
 
-    if not isinstance(step_size, dict):
-        step_size = OrderedDict((name, step_size)
-            for (name, _) in model.meta_named_parameters())
-
-    for (name, param), grad in zip(params.items(), grads):
-        out[name] = param - step_size[name] * grad
+    if isinstance(step_size, (dict, OrderedDict)):
+        for (name, param), grad in zip(params.items(), grads):
+            out[name] = param - step_size[name] * grad
+    else:
+        for (name, param), grad in zip(params.items(), grads):
+            out[name] = param - step_size * grad
 
     return out
 

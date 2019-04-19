@@ -26,13 +26,12 @@ class ModelAgnosticMetaLearning(object):
                 requires_grad=learn_step_size)) for (name, param)
                 in model.meta_named_parameters())
         else:
-            step_size_tensor = torch.tensor(step_size, dtype=torch.float32,
+            self.step_size = torch.tensor(step_size, dtype=torch.float32,
                 device=self.device, requires_grad=learn_step_size)
-            self.step_size = OrderedDict((name, step_size_tensor)
-                for (name, _) in model.meta_named_parameters())
 
         if (self.optimizer is not None) and learn_step_size:
-            self.optimizer.add_param_group({'params': self.step_size.values()})
+            self.optimizer.add_param_group({'params': self.step_size.values()
+                if per_param_step_size else [self.step_size]})
             if scheduler is not None:
                 for group in self.optimizer.param_groups:
                     group.setdefault('initial_lr', group['lr'])

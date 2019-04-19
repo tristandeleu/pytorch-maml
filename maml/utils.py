@@ -22,6 +22,12 @@ def update_parameters(model, loss, params=None, step_size=0.5, first_order=False
 
     return out
 
+def compute_accuracy(logits, targets):
+    with torch.no_grad():
+        _, predictions = torch.max(logits, dim=1)
+        accuracy = torch.mean(predictions.eq(targets).float())
+    return accuracy.item()
+
 def tensors_to_device(tensors, device=torch.device('cpu')):
     if isinstance(tensors, torch.Tensor):
         return tensors.to(device=device)

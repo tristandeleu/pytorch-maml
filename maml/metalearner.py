@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import tqdm
 
 from collections import OrderedDict
-from maml.utils import update_parameters, tensors_to_device
+from maml.utils import update_parameters, tensors_to_device, compute_accuracy
 
 class ModelAgnosticMetaLearning(object):
     def __init__(self, model, optimizer=None, step_size=0.1, first_order=False,
@@ -69,10 +69,8 @@ class ModelAgnosticMetaLearning(object):
                 results['inner_losses'][step, task_id] = inner_loss.item()
 
                 if (step == 0) and is_classification_task:
-                    with torch.no_grad():
-                        _, train_predictions = torch.max(train_logits, dim=1)
-                        accuracy = torch.mean(train_predictions.eq(train_targets).float())
-                        results['accuracies_before'][task_id] = accuracy.item()
+                    results['accuracies_before'][task_id] = compute_accuracy(
+                        train_logits, train_targets)
 
                 self.model.zero_grad()
                 params = update_parameters(self.model, inner_loss,
@@ -86,10 +84,8 @@ class ModelAgnosticMetaLearning(object):
                 mean_outer_loss += outer_loss
 
             if is_classification_task:
-                with torch.no_grad():
-                    _, test_predictions = torch.max(test_logits, dim=1)
-                    accuracy = torch.mean(test_predictions.eq(test_targets).float())
-                    results['accuracies_after'][task_id] = accuracy.item()
+                results['accuracies_after'][task_id] = compute_accuracy(
+                    test_logits, test_targets)
 
         mean_outer_loss.div_(num_tasks)
         results['mean_outer_loss'] = mean_outer_loss.item()

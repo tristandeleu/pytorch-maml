@@ -18,11 +18,11 @@ def main(args):
                 num_test_per_class=args.num_shots)])
         transform = Compose([Resize(28), ToTensor()])
 
-        meta_train_dataset = Omniglot(args.data_folder,
+        meta_train_dataset = Omniglot(args.folder,
             num_classes_per_task=args.num_ways, meta_train=True,
             transform=transform, dataset_transform=dataset_transform,
             download=True)
-        meta_val_dataset = Omniglot(args.data_folder,
+        meta_val_dataset = Omniglot(args.folder,
             num_classes_per_task=args.num_ways, meta_val=True,
             transform=transform, dataset_transform=dataset_transform)
     else:
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('MAML')
 
     # General
-    parser.add_argument('data-folder', type=str,
+    parser.add_argument('folder', type=str,
         help='Path to the folder the data is downloaded to.')
     parser.add_argument('--dataset', type=str,
         choices=['omniglot'], default='omniglot',

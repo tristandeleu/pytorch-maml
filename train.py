@@ -80,6 +80,10 @@ if __name__ == '__main__':
     parser.add_argument('--num-steps', type=int, default=1,
         help='Number of fast adaptation steps, ie. gradient descent '
         'updates (default: 1).')
+    parser.add_argument('--num-epochs', type=int, default=50,
+        help='Number of epochs of meta-training (default: 50).')
+    parser.add_argument('--num-batches', type=int, default=100,
+        help='Number of batch of tasks per epoch (default: 100).')
     parser.add_argument('--step-size', type=float, default=0.1,
         help='Size of the fast adaptation step, ie. learning rate in the '
         'gradient descent update (default: 0.1).')

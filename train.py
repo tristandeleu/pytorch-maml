@@ -5,7 +5,7 @@ import argparse
 import torchmeta
 
 from torchmeta.datasets import Omniglot
-from torchmeta.transforms import ClassSplitter, CategoricalTaskTarget
+from torchmeta.transforms import ClassSplitter, CategoricalWrapper
 from torchvision.transforms import ToTensor, Resize, Compose
 
 from maml.model import MetaVGGNetwork
@@ -13,7 +13,7 @@ from maml.metalearner import ModelAgnosticMetaLearning
 
 def main(args):
     if args.dataset == 'omniglot':
-        dataset_transform = Compose([CategoricalTaskTarget(),
+        dataset_transform = Compose([CategoricalWrapper(),
             ClassSplitter(shuffle=True, num_train_per_class=args.num_shots,
                 num_test_per_class=args.num_shots)])
         transform = Compose([Resize(28), ToTensor()])

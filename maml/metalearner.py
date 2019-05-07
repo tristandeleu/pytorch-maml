@@ -74,7 +74,7 @@ class ModelAgnosticMetaLearning(object):
                 self.model.zero_grad()
                 params = update_parameters(self.model, inner_loss,
                     step_size=self.step_size,
-                    first_order=self.model.training and self.first_order)
+                    first_order=(not self.model.training) or self.first_order)
 
             with torch.set_grad_enabled(self.model.training):
                 test_logits = self.model(test_inputs, params=params)
@@ -109,6 +109,7 @@ class ModelAgnosticMetaLearning(object):
                 '(eg. `{0}(model, optimizer=torch.optim.SGD(model.'
                 'parameters(), lr=0.01), ...).'.format(__class__.__name__))
         num_batches = 0
+        self.model.train()
         while num_batches < max_batches:
             for batch in dataloader:
                 if num_batches >= max_batches:
@@ -117,7 +118,6 @@ class ModelAgnosticMetaLearning(object):
                 if self.scheduler is not None:
                     self.scheduler.step(epoch=num_batches)
 
-                self.model.train()
                 self.optimizer.zero_grad()
 
                 batch = tensors_to_device(batch, device=self.device)
@@ -141,12 +141,12 @@ class ModelAgnosticMetaLearning(object):
 
     def evaluate_iter(self, dataloader, max_batches=500):
         num_batches = 0
+        self.model.eval()
         while num_batches < max_batches:
             for batch in dataloader:
                 if num_batches >= max_batches:
                     break
 
-                self.model.eval()
                 batch = tensors_to_device(batch, device=self.device)
                 _, results = self.get_outer_loss(batch)
                 yield results

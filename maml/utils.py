@@ -6,11 +6,13 @@ from maml.modules import MetaModule
 def update_parameters(model, loss, params=None, step_size=0.5, first_order=False):
     if not isinstance(model, MetaModule):
         raise ValueError()
-    grads = torch.autograd.grad(loss, model.meta_parameters(),
-        create_graph=not first_order)
 
     if params is None:
         params = OrderedDict(model.meta_named_parameters())
+
+    grads = torch.autograd.grad(loss, params.values(),
+        create_graph=not first_order)
+
     out = OrderedDict()
 
     if isinstance(step_size, (dict, OrderedDict)):

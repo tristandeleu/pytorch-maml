@@ -91,8 +91,8 @@ class ModelAgnosticMetaLearning(object):
 
         return mean_outer_loss, results
 
-    def train(self, dataloader, max_batches=500, verbose=True):
-        with tqdm(total=max_batches, disable=not verbose) as pbar:
+    def train(self, dataloader, max_batches=500, verbose=True, **kwargs):
+        with tqdm(total=max_batches, disable=not verbose, **kwargs) as pbar:
             for results in self.train_iter(dataloader, max_batches=max_batches):
                 pbar.update(1)
                 postfix = {'loss': '{0:.4f}'.format(results['mean_outer_loss'])}
@@ -129,14 +129,19 @@ class ModelAgnosticMetaLearning(object):
 
                 num_batches += 1
 
-    def evaluate(self, dataloader, max_batches=500, verbose=True):
-        with tqdm(total=max_batches, disable=not verbose) as pbar:
+    def evaluate(self, dataloader, max_batches=500, verbose=True, **kwargs):
+        mean_outer_loss, mean_accuracy, count = 0., 0., 0
+        with tqdm(total=max_batches, disable=not verbose, **kwargs) as pbar:
             for results in self.evaluate_iter(dataloader, max_batches=max_batches):
                 pbar.update(1)
-                postfix = {'loss': '{0:.4f}'.format(results['mean_outer_loss'])}
+                count += 1
+                mean_outer_loss += (results['mean_outer_loss']
+                    - mean_outer_loss) / count
+                postfix = {'loss': '{0:.4f}'.format(mean_outer_loss)}
                 if 'accuracies_after' in results:
-                    postfix['accuracy'] = '{0:.4f}'.format(
-                        np.mean(results['accuracies_after']))
+                    mean_accuracy += (np.mean(results['accuracies_after'])
+                        - mean_accuracy) / count
+                    postfix['accuracy'] = '{0:.4f}'.format(mean_accuracy)
                 pbar.set_postfix(**postfix)
 
     def evaluate_iter(self, dataloader, max_batches=500):

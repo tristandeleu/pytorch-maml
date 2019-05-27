@@ -15,16 +15,15 @@ def main(args):
     if args.dataset == 'omniglot':
         dataset_transform = Compose([CategoricalWrapper(),
             ClassSplitter(shuffle=True, num_train_per_class=args.num_shots,
-                num_test_per_class=args.num_shots)])
+                num_test_per_class=args.num_shots_test)])
         transform = Compose([Resize(28), ToTensor()])
 
-        meta_train_dataset = Omniglot(args.folder,
+        meta_train_dataset = Omniglot(args.folder, transform=transform,
             num_classes_per_task=args.num_ways, meta_train=True,
-            transform=transform, dataset_transform=dataset_transform,
-            download=True)
-        meta_val_dataset = Omniglot(args.folder,
+            dataset_transform=dataset_transform, download=True)
+        meta_val_dataset = Omniglot(args.folder, transform=transform,
             num_classes_per_task=args.num_ways, meta_val=True,
-            transform=transform, dataset_transform=dataset_transform)
+            dataset_transform=dataset_transform)
     else:
         raise NotImplementedError('Unknown dataset `{0}`.'.format(args.dataset))
 
@@ -69,6 +68,9 @@ if __name__ == '__main__':
         help='Number of classes per task (N in "N-way", default: 5).')
     parser.add_argument('--num-shots', type=int, default=5,
         help='Number of training example per class (k in "k-shot", default: 5).')
+    parser.add_argument('--num-shots-test', type=int, default=15,
+        help='Number of test example per class. If negative, same as the number '
+        'of training examples `--num-shots` (default: 15).')
 
     # Model
     parser.add_argument('--hidden-size', type=int, default=64,
@@ -104,5 +106,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.device = torch.device('cuda' if args.use_cuda
         and torch.cuda.is_available() else 'cpu')
+
+    if args.num_shots_test <= 0:
+        args.num_shots_test = args.num_shots
 
     main(args)

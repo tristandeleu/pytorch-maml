@@ -1,9 +1,9 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
-import argparse
-import torchmeta
+import math
 
+from torchmeta import BasicMetaDataLoader
 from torchmeta.datasets import Omniglot
 from torchmeta.transforms import ClassSplitter, CategoricalWrapper
 from torchvision.transforms import ToTensor, Resize, Compose
@@ -28,10 +28,10 @@ def main(args):
     else:
         raise NotImplementedError('Unknown dataset `{0}`.'.format(args.dataset))
 
-    meta_train_dataloader = torchmeta.BasicMetaDataLoader(meta_train_dataset,
+    meta_train_dataloader = BasicMetaDataLoader(meta_train_dataset,
         batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
         pin_memory=True)
-    meta_val_dataloader = torchmeta.BasicMetaDataLoader(meta_val_dataset,
+    meta_val_dataloader = BasicMetaDataLoader(meta_val_dataset,
         batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
         pin_memory=True)
 
@@ -42,11 +42,12 @@ def main(args):
         step_size=args.step_size, loss_function=F.cross_entropy, device=args.device)
 
     # Training loop
+    epoch_desc = 'Epoch {{0: <{0}d}}'.format(1 + int(math.log10(args.num_epochs)))
     for epoch in range(args.num_epochs):
         metalearner.train(meta_train_dataloader, max_batches=args.num_batches,
-            verbose=args.verbose)
+            verbose=args.verbose, desc='Training', leave=False)
         metalearner.evaluate(meta_val_dataloader, max_batches=args.num_batches,
-            verbose=args.verbose)
+            verbose=args.verbose, desc=epoch_desc.format(epoch + 1))
 
     if hasattr(meta_train_dataset, 'close'):
         meta_train_dataset.close()

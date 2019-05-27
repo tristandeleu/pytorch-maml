@@ -10,7 +10,8 @@ def conv_block(in_channels, out_channels, **kwargs):
         ('conv', MetaConv2d(in_channels, out_channels, **kwargs)),
         ('norm', MetaBatchNorm2d(out_channels, momentum=1.,
             track_running_stats=False)),
-        ('relu', nn.LeakyReLU())
+        ('relu', nn.LeakyReLU()),
+        ('pool', nn.MaxPool2d(2))
     ]))
 
 class MetaVGGNetwork(MetaModule):
@@ -21,18 +22,14 @@ class MetaVGGNetwork(MetaModule):
         self.hidden_size = hidden_size
         
         self.features = MetaSequential(OrderedDict([
-            ('conv1', conv_block(in_channels, hidden_size, kernel_size=3,
-                                 stride=1, padding=1, bias=True)),
-            ('pool1', nn.MaxPool2d(2)),
-            ('conv2', conv_block(hidden_size, hidden_size, kernel_size=3,
-                                 stride=1, padding=1, bias=True)),
-            ('pool2', nn.MaxPool2d(2)),
-            ('conv3', conv_block(hidden_size, hidden_size, kernel_size=3,
-                                 stride=1, padding=1, bias=True)),
-            ('pool3', nn.MaxPool2d(2)),
-            ('conv4', conv_block(hidden_size, hidden_size, kernel_size=3,
-                                 stride=1, padding=1, bias=True)),
-            ('pool4', nn.MaxPool2d(2))
+            ('layer1', conv_block(in_channels, hidden_size, kernel_size=3,
+                                  stride=1, padding=1, bias=True)),
+            ('layer2', conv_block(hidden_size, hidden_size, kernel_size=3,
+                                  stride=1, padding=1, bias=True)),
+            ('layer3', conv_block(hidden_size, hidden_size, kernel_size=3,
+                                  stride=1, padding=1, bias=True)),
+            ('layer4', conv_block(hidden_size, hidden_size, kernel_size=3,
+                                  stride=1, padding=1, bias=True))
         ]))
 
         self.classifier = MetaLinear(hidden_size, out_features, bias=True)

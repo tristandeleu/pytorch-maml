@@ -73,7 +73,7 @@ class ModelAgnosticMetaLearning(object):
 
                 self.model.zero_grad()
                 params = update_parameters(self.model, inner_loss,
-                    step_size=self.step_size,
+                    step_size=self.step_size, params=params,
                     first_order=(not self.model.training) or self.first_order)
 
             with torch.set_grad_enabled(self.model.training):

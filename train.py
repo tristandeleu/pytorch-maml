@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import numpy as np
 import math
 
-from torchmeta import BasicMetaDataLoader
+from torchmeta.utils.data import BatchMetaDataLoader
 from torchmeta.datasets import Omniglot
 from torchmeta.transforms import ClassSplitter, CategoricalWrapper
 from torchvision.transforms import ToTensor, Resize, Compose
@@ -27,10 +27,10 @@ def main(args):
     else:
         raise NotImplementedError('Unknown dataset `{0}`.'.format(args.dataset))
 
-    meta_train_dataloader = BasicMetaDataLoader(meta_train_dataset,
+    meta_train_dataloader = BatchMetaDataLoader(meta_train_dataset,
         batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
         pin_memory=True)
-    meta_val_dataloader = BasicMetaDataLoader(meta_val_dataset,
+    meta_val_dataloader = BatchMetaDataLoader(meta_val_dataset,
         batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
         pin_memory=True)
 

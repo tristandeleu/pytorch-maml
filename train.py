@@ -5,7 +5,7 @@ import math
 
 from torchmeta.utils.data import BatchMetaDataLoader
 from torchmeta.datasets import Omniglot
-from torchmeta.transforms import ClassSplitter, CategoricalWrapper
+from torchmeta.transforms import ClassSplitter, Categorical
 from torchvision.transforms import ToTensor, Resize, Compose
 
 from maml.model import MetaVGGNetwork
@@ -13,15 +13,17 @@ from maml.metalearner import ModelAgnosticMetaLearning
 
 def main(args):
     if args.dataset == 'omniglot':
-        dataset_transform = Compose([CategoricalWrapper(),
-            ClassSplitter(shuffle=True, num_train_per_class=args.num_shots,
-                num_test_per_class=args.num_shots_test)])
+        dataset_transform = ClassSplitter(shuffle=True,
+            num_train_per_class=args.num_shots,
+            num_test_per_class=args.num_shots_test)
         transform = Compose([Resize(28), ToTensor()])
 
         meta_train_dataset = Omniglot(args.folder, transform=transform,
+            target_transform=Categorical(args.num_ways),
             num_classes_per_task=args.num_ways, meta_train=True,
             dataset_transform=dataset_transform, download=True)
         meta_val_dataset = Omniglot(args.folder, transform=transform,
+            target_transform=Categorical(args.num_ways),
             num_classes_per_task=args.num_ways, meta_val=True,
             dataset_transform=dataset_transform)
     else:

@@ -62,7 +62,9 @@ class ModelAgnosticMetaLearning(object):
         for task_id, (train_inputs, train_targets, test_inputs, test_targets) \
                 in enumerate(zip(*batch['train'], *batch['test'])):
             params, adaptation_results = self.adapt(train_inputs, train_targets,
-                is_classification_task=is_classification_task)
+                is_classification_task=is_classification_task,
+                num_adaptation_steps=self.num_adaptation_steps,
+                step_size=self.step_size, first_order=self.first_order)
 
             results['inner_losses'][:, task_id] = adaptation_results['inner_losses']
             if is_classification_task:
@@ -84,11 +86,9 @@ class ModelAgnosticMetaLearning(object):
         return mean_outer_loss, results
 
     def adapt(self, inputs, targets, is_classification_task=None,
-              num_adaptation_steps=None):
+              num_adaptation_steps=1, step_size=0.1, first_order=False):
         if is_classification_task is None:
             is_classification_task = (not targets.dtype.is_floating_point)
-        if num_adaptation_steps is None:
-            num_adaptation_steps = self.num_adaptation_steps
         params = None
 
         results = {'inner_losses': np.zeros(
@@ -104,8 +104,8 @@ class ModelAgnosticMetaLearning(object):
 
             self.model.zero_grad()
             params = update_parameters(self.model, inner_loss,
-                step_size=self.step_size, params=params,
-                first_order=(not self.model.training) or self.first_order)
+                step_size=step_size, params=params,
+                first_order=(not self.model.training) or first_order)
 
         return params, results
 

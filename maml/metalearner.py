@@ -61,20 +61,12 @@ class ModelAgnosticMetaLearning(object):
         mean_outer_loss = torch.tensor(0., device=self.device)
         for task_id, (train_inputs, train_targets, test_inputs, test_targets) \
                 in enumerate(zip(*batch['train'], *batch['test'])):
-            params = None
-            for step in range(self.num_adaptation_steps):
-                train_logits = self.model(train_inputs, params=params)
-                inner_loss = self.loss_function(train_logits, train_targets)
-                results['inner_losses'][step, task_id] = inner_loss.item()
+            params, adaptation_results = self.adapt(train_inputs, train_targets,
+                is_classification_task=is_classification_task)
 
-                if (step == 0) and is_classification_task:
-                    results['accuracies_before'][task_id] = compute_accuracy(
-                        train_logits, train_targets)
-
-                self.model.zero_grad()
-                params = update_parameters(self.model, inner_loss,
-                    step_size=self.step_size, params=params,
-                    first_order=(not self.model.training) or self.first_order)
+            results['inner_losses'][:, task_id] = adaptation_results['inner_losses']
+            if is_classification_task:
+                results['accuracies_before'][task_id] = adaptation_results['accuracy_before']
 
             with torch.set_grad_enabled(self.model.training):
                 test_logits = self.model(test_inputs, params=params)
@@ -90,6 +82,29 @@ class ModelAgnosticMetaLearning(object):
         results['mean_outer_loss'] = mean_outer_loss.item()
 
         return mean_outer_loss, results
+
+    def adapt(self, inputs, targets, is_classification_task=None):
+        if is_classification_task is None:
+            is_classification_task = (not targets.dtype.is_floating_point)
+        params = None
+
+        results = {'inner_losses': np.zeros(
+            (self.num_adaptation_steps,), dtype=np.float32)}
+
+        for step in range(self.num_adaptation_steps):
+            logits = self.model(inputs, params=params)
+            inner_loss = self.loss_function(logits, targets)
+            results['inner_losses'][step] = inner_loss.item()
+
+            if (step == 0) and is_classification_task:
+                results['accuracy_before'] = compute_accuracy(logits, targets)
+
+            self.model.zero_grad()
+            params = update_parameters(self.model, inner_loss,
+                step_size=self.step_size, params=params,
+                first_order=(not self.model.training) or self.first_order)
+
+        return params, results
 
     def train(self, dataloader, max_batches=500, verbose=True, **kwargs):
         with tqdm(total=max_batches, disable=not verbose, **kwargs) as pbar:

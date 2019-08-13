@@ -83,15 +83,18 @@ class ModelAgnosticMetaLearning(object):
 
         return mean_outer_loss, results
 
-    def adapt(self, inputs, targets, is_classification_task=None):
+    def adapt(self, inputs, targets, is_classification_task=None,
+              num_adaptation_steps=None):
         if is_classification_task is None:
             is_classification_task = (not targets.dtype.is_floating_point)
+        if num_adaptation_steps is None:
+            num_adaptation_steps = self.num_adaptation_steps
         params = None
 
         results = {'inner_losses': np.zeros(
-            (self.num_adaptation_steps,), dtype=np.float32)}
+            (num_adaptation_steps,), dtype=np.float32)}
 
-        for step in range(self.num_adaptation_steps):
+        for step in range(num_adaptation_steps):
             logits = self.model(inputs, params=params)
             inner_loss = self.loss_function(logits, targets)
             results['inner_losses'][step] = inner_loss.item()

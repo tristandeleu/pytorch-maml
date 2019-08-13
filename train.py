@@ -9,7 +9,7 @@ from torchmeta.transforms import ClassSplitter, Categorical
 from torchvision.transforms import ToTensor, Resize, Compose
 
 from maml.model import MetaVGGNetwork
-from maml.metalearner import ModelAgnosticMetaLearning
+from maml.metalearners import ModelAgnosticMetaLearning
 
 def main(args):
     if args.dataset == 'omniglot':

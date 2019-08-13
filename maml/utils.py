@@ -1,7 +1,7 @@
 import torch
 
 from collections import OrderedDict
-from maml.modules import MetaModule
+from torchmeta.modules import MetaModule
 
 def update_parameters(model, loss, params=None, step_size=0.5, first_order=False):
     if not isinstance(model, MetaModule):

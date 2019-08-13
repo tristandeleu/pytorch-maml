@@ -1,9 +1,9 @@
 import torch.nn as nn
 
 from collections import OrderedDict
-from maml.modules import (MetaModule, MetaConv2d, MetaBatchNorm2d,
+from torchmeta.modules import (MetaModule, MetaConv2d, MetaBatchNorm2d,
     MetaSequential, MetaLinear)
-from maml.modules.utils import get_subdict
+from torchmeta.modules.utils import get_subdict
 
 def conv_block(in_channels, out_channels, **kwargs):
     return MetaSequential(OrderedDict([

@@ -46,6 +46,7 @@ def main(args):
             dataset_transform=dataset_transform)
 
         model = ModelMLPSinusoid(hidden_sizes=[40, 40])
+        loss_function = F.mse_loss
     elif args.dataset == 'omniglot':
         transform = Compose([Resize(28), ToTensor()])
 
@@ -59,6 +60,7 @@ def main(args):
             dataset_transform=dataset_transform)
 
         model = ModelConvOmniglot(args.num_ways, hidden_size=args.hidden_size)
+        loss_function = F.cross_entropy
     elif args.dataset == 'miniimagenet':
         transform = Compose([Resize(84), ToTensor()])
 
@@ -72,6 +74,7 @@ def main(args):
             dataset_transform=dataset_transform)
 
         model = ModelConvMiniImagenet(args.num_ways, hidden_size=args.hidden_size)
+        loss_function = F.cross_entropy
     else:
         raise NotImplementedError('Unknown dataset `{0}`.'.format(args.dataset))
 
@@ -85,7 +88,7 @@ def main(args):
     meta_optimizer = torch.optim.Adam(model.parameters(), lr=args.meta_lr)
     metalearner = ModelAgnosticMetaLearning(model, meta_optimizer,
         first_order=args.first_order, num_adaptation_steps=args.num_steps,
-        step_size=args.step_size, loss_function=F.cross_entropy, device=device)
+        step_size=args.step_size, loss_function=loss_function, device=device)
 
     best_val_accuracy = None
 

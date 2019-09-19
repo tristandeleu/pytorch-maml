@@ -134,7 +134,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str,
         choices=['sinusoid', 'omniglot', 'miniimagenet'], default='omniglot',
         help='Name of the dataset (default: omniglot).')
-    parser.add_argument('--output-folder', default=None,
+    parser.add_argument('--output-folder', type=str, default=None,
         help='Path to the output folder to save the model.')
     parser.add_argument('--num-ways', type=int, default=5,
         help='Number of classes per task (N in "N-way", default: 5).')

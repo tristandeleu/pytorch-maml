@@ -4,6 +4,7 @@ import math
 import os
 import time
 import json
+import logging
 
 from torchmeta.utils.data import BatchMetaDataLoader
 from torchmeta.datasets import Omniglot, MiniImagenet
@@ -15,22 +16,27 @@ from maml.model import ModelConvOmniglot, ModelConvMiniImagenet, ModelMLPSinusoi
 from maml.metalearners import ModelAgnosticMetaLearning
 
 def main(args):
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
     device = torch.device('cuda' if args.use_cuda
                           and torch.cuda.is_available() else 'cpu')
 
     if (args.output_folder is not None):
         if not os.path.exists(args.output_folder):
             os.makedirs(args.output_folder)
+            logging.debug('Creating folder `{0}`'.format(args.output_folder))
 
         folder = os.path.join(args.output_folder,
                               time.strftime('%Y-%m-%d_%H%M%S'))
         os.makedirs(folder)
+        logging.debug('Creating folder `{0}`'.format(folder))
 
         args.folder = os.path.abspath(args.folder)
         args.model_path = os.path.abspath(os.path.join(folder, 'model.th'))
         # Save the configuration in a config.json file
         with open(os.path.join(folder, 'config.json'), 'w') as f:
             json.dump(vars(args), f, indent=2)
+        logging.info('Saving configuration file in `{0}`'.format(
+                     os.path.abspath(os.path.join(folder, 'config.json'))))
 
     dataset_transform = ClassSplitter(shuffle=True,
                                       num_train_per_class=args.num_shots,
@@ -47,6 +53,7 @@ def main(args):
 
         model = ModelMLPSinusoid(hidden_sizes=[40, 40])
         loss_function = F.mse_loss
+
     elif args.dataset == 'omniglot':
         transform = Compose([Resize(28), ToTensor()])
 
@@ -61,6 +68,7 @@ def main(args):
 
         model = ModelConvOmniglot(args.num_ways, hidden_size=args.hidden_size)
         loss_function = F.cross_entropy
+
     elif args.dataset == 'miniimagenet':
         transform = Compose([Resize(84), ToTensor()])
 
@@ -75,6 +83,7 @@ def main(args):
 
         model = ModelConvMiniImagenet(args.num_ways, hidden_size=args.hidden_size)
         loss_function = F.cross_entropy
+
     else:
         raise NotImplementedError('Unknown dataset `{0}`.'.format(args.dataset))
 

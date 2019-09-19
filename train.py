@@ -1,21 +1,32 @@
 import torch
 import torch.nn.functional as F
-import numpy as np
 import math
 
 from torchmeta.utils.data import BatchMetaDataLoader
-from torchmeta.datasets import Omniglot
+from torchmeta.datasets import Omniglot, MiniImagenet
+from torchmeta.toy import Sinusoid
 from torchmeta.transforms import ClassSplitter, Categorical
 from torchvision.transforms import ToTensor, Resize, Compose
 
-from maml.model import MetaVGGNetwork
+from maml.model import ModelConvOmniglot, ModelConvMiniImagenet, ModelMLPSinusoid
 from maml.metalearners import ModelAgnosticMetaLearning
 
 def main(args):
-    if args.dataset == 'omniglot':
-        dataset_transform = ClassSplitter(shuffle=True,
-            num_train_per_class=args.num_shots,
-            num_test_per_class=args.num_shots_test)
+    dataset_transform = ClassSplitter(shuffle=True,
+                                      num_train_per_class=args.num_shots,
+                                      num_test_per_class=args.num_shots_test)
+    if args.dataset == 'sinusoid':
+        transform = ToTensor()
+
+        meta_train_dataset = Sinusoid(args.num_shots + args.num_shots_test,
+            num_tasks=1000000, transform=transform, target_transform=transform,
+            dataset_transform=dataset_transform)
+        meta_val_dataset = Sinusoid(args.num_shots + args.num_shots_test,
+            num_tasks=1000000, transform=transform, target_transform=transform,
+            dataset_transform=dataset_transform)
+
+        model = ModelMLPSinusoid(hidden_sizes=[40, 40])
+    elif args.dataset == 'omniglot':
         transform = Compose([Resize(28), ToTensor()])
 
         meta_train_dataset = Omniglot(args.folder, transform=transform,
@@ -26,6 +37,21 @@ def main(args):
             target_transform=Categorical(args.num_ways),
             num_classes_per_task=args.num_ways, meta_val=True,
             dataset_transform=dataset_transform)
+
+        model = ModelConvOmniglot(args.num_ways, hidden_size=args.hidden_size)
+    elif args.dataset == 'miniimagenet':
+        transform = Compose([Resize(84), ToTensor()])
+
+        meta_train_dataset = MiniImagenet(args.folder, transform=transform,
+            target_transform=Categorical(args.num_ways),
+            num_classes_per_task=args.num_ways, meta_train=True,
+            dataset_transform=dataset_transform, download=True)
+        meta_val_dataset = MiniImagenet(args.folder, transform=transform,
+            target_transform=Categorical(args.num_ways),
+            num_classes_per_task=args.num_ways, meta_val=True,
+            dataset_transform=dataset_transform)
+
+        model = ModelConvMiniImagenet(args.num_ways, hidden_size=args.hidden_size)
     else:
         raise NotImplementedError('Unknown dataset `{0}`.'.format(args.dataset))
 
@@ -36,7 +62,6 @@ def main(args):
         batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
         pin_memory=True)
 
-    model = MetaVGGNetwork(1, args.num_ways, hidden_size=args.hidden_size)
     meta_optimizer = torch.optim.Adam(model.parameters(), lr=args.meta_lr)
     metalearner = ModelAgnosticMetaLearning(model, meta_optimizer,
         first_order=args.first_order, num_adaptation_steps=args.num_steps,

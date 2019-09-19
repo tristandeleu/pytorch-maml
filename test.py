@@ -18,6 +18,8 @@ def main(args):
 
     if args.num_steps > 0:
         config['num_steps'] = args.num_steps
+    if args.num_batches > 0:
+        config['num_batches'] = args.num_batches
     device = torch.device('cuda' if config['use_cuda']
                           and torch.cuda.is_available() else 'cpu')
 
@@ -86,7 +88,7 @@ if __name__ == '__main__':
     parser.add_argument('--num-steps', type=int, default=-1,
         help='Number of fast adaptation steps, ie. gradient descent updates '
         '(default: number of steps in configuration file).')
-    parser.add_argument('--num-batches', type=int, default=100,
+    parser.add_argument('--num-batches', type=int, default=-1,
         help='Number of batch of tasks per epoch '
         '(default: number of batches in configuration file).')
 

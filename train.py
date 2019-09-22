@@ -9,7 +9,7 @@ import logging
 from torchmeta.utils.data import BatchMetaDataLoader
 from torchmeta.datasets import Omniglot, MiniImagenet
 from torchmeta.toy import Sinusoid
-from torchmeta.transforms import ClassSplitter, Categorical
+from torchmeta.transforms import ClassSplitter, Categorical, Rotation
 from torchvision.transforms import ToTensor, Resize, Compose
 
 from maml.model import ModelConvOmniglot, ModelConvMiniImagenet, ModelMLPSinusoid
@@ -41,6 +41,7 @@ def main(args):
     dataset_transform = ClassSplitter(shuffle=True,
                                       num_train_per_class=args.num_shots,
                                       num_test_per_class=args.num_shots_test)
+    class_augmentations = [Rotation([90, 180, 270])]
     if args.dataset == 'sinusoid':
         transform = ToTensor()
 
@@ -60,10 +61,12 @@ def main(args):
         meta_train_dataset = Omniglot(args.folder, transform=transform,
             target_transform=Categorical(args.num_ways),
             num_classes_per_task=args.num_ways, meta_train=True,
+            class_augmentations=class_augmentations,
             dataset_transform=dataset_transform, download=True)
         meta_val_dataset = Omniglot(args.folder, transform=transform,
             target_transform=Categorical(args.num_ways),
             num_classes_per_task=args.num_ways, meta_val=True,
+            class_augmentations=class_augmentations,
             dataset_transform=dataset_transform)
 
         model = ModelConvOmniglot(args.num_ways, hidden_size=args.hidden_size)
@@ -75,10 +78,12 @@ def main(args):
         meta_train_dataset = MiniImagenet(args.folder, transform=transform,
             target_transform=Categorical(args.num_ways),
             num_classes_per_task=args.num_ways, meta_train=True,
+            class_augmentations=class_augmentations,
             dataset_transform=dataset_transform, download=True)
         meta_val_dataset = MiniImagenet(args.folder, transform=transform,
             target_transform=Categorical(args.num_ways),
             num_classes_per_task=args.num_ways, meta_val=True,
+            class_augmentations=class_augmentations,
             dataset_transform=dataset_transform)
 
         model = ModelConvMiniImagenet(args.num_ways, hidden_size=args.hidden_size)

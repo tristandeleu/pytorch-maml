@@ -58,7 +58,7 @@ def main(args):
         raise NotImplementedError('Unknown dataset `{0}`.'.format(config['dataset']))
 
     with open(config['model_path'], 'rb') as f:
-        model.load_state_dict(torch.load(f))
+        model.load_state_dict(torch.load(f, map_location=device))
 
     meta_test_dataloader = BatchMetaDataLoader(meta_test_dataset,
         batch_size=config['batch_size'], shuffle=True,

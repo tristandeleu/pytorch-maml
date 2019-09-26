@@ -15,6 +15,28 @@ def conv_block(in_channels, out_channels, **kwargs):
     ]))
 
 class MetaConvModel(MetaModule):
+    """4-layer Convolutional Neural Network architecture from [1].
+
+    Parameters
+    ----------
+    in_channels : int
+        Number of channels for the input images.
+
+    out_features : int
+        Number of classes (output of the model).
+
+    hidden_size : int (default: 64)
+        Number of channels in the intermediate representations.
+
+    feature_size : int (default: 64)
+        Number of features returned by the convolutional head.
+
+    References
+    ----------
+    .. [1] Finn C., Abbeel P., and Levine, S. (2017). Model-Agnostic Meta-Learning
+           for Fast Adaptation of Deep Networks. International Conference on
+           Machine Learning (ICML) (https://arxiv.org/abs/1703.03400)
+    """
     def __init__(self, in_channels, out_features, hidden_size=64, feature_size=64):
         super(MetaConvModel, self).__init__()
         self.in_channels = in_channels
@@ -41,6 +63,26 @@ class MetaConvModel(MetaModule):
         return logits
 
 class MetaMLPModel(MetaModule):
+    """Multi-layer Perceptron architecture from [1].
+
+    Parameters
+    ----------
+    in_features : int
+        Number of input features.
+
+    out_features : int
+        Number of classes (output of the model).
+
+    hidden_sizes : list of int
+        Size of the intermediate representations. The length of this list
+        corresponds to the number of hidden layers.
+
+    References
+    ----------
+    .. [1] Finn C., Abbeel P., and Levine, S. (2017). Model-Agnostic Meta-Learning
+           for Fast Adaptation of Deep Networks. International Conference on
+           Machine Learning (ICML) (https://arxiv.org/abs/1703.03400)
+    """
     def __init__(self, in_features, out_features, hidden_sizes):
         super(MetaMLPModel, self).__init__()
         self.in_features = in_features

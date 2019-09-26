@@ -16,11 +16,13 @@ def main(args):
     with open(args.config, 'r') as f:
         config = json.load(f)
 
+    if args.folder is not None:
+        config['folder'] = args.folder
     if args.num_steps > 0:
         config['num_steps'] = args.num_steps
     if args.num_batches > 0:
         config['num_batches'] = args.num_batches
-    device = torch.device('cuda' if config['use_cuda']
+    device = torch.device('cuda' if args.use_cuda
                           and torch.cuda.is_available() else 'cpu')
 
     dataset_transform = ClassSplitter(shuffle=True,
@@ -83,6 +85,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('MAML')
     parser.add_argument('config', type=str,
         help='Path to the configuration file returned by `train.py`.')
+    parser.add_argument('--folder', type=int, default=None,
+        help='Path to the folder the data is downloaded to. '
+        '(default: path defined in configuration file).')
 
     # Optimization
     parser.add_argument('--num-steps', type=int, default=-1,
@@ -96,6 +101,7 @@ if __name__ == '__main__':
     parser.add_argument('--num-workers', type=int, default=1,
         help='Number of workers to use for data-loading (default: 1).')
     parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--use-cuda', action='store_true')
 
     args = parser.parse_args()
     main(args)

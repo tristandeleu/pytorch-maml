@@ -1,4 +1,5 @@
 # Model-Agnostic Meta-Learning
+[![Build Status](https://travis-ci.com/tristandeleu/pytorch-maml.svg?branch=master)](https://travis-ci.com/tristandeleu/pytorch-maml) [![Documentation](https://img.shields.io/badge/1.2-PyTorch-EE4C2C)](https://pytorch.org/)
 
 An implementation of Model-Agnostic Meta-Learning (MAML) in [PyTorch](https://pytorch.org/) with [Torchmeta](https://github.com/tristandeleu/pytorch-meta).
 

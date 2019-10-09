@@ -2,7 +2,7 @@ import torch.nn as nn
 
 from collections import OrderedDict
 from torchmeta.modules import (MetaModule, MetaConv2d, MetaBatchNorm2d,
-    MetaSequential, MetaLinear)
+                               MetaSequential, MetaLinear)
 from torchmeta.modules.utils import get_subdict
 
 def conv_block(in_channels, out_channels, **kwargs):

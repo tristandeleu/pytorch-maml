@@ -28,7 +28,7 @@ python train.py /path/to/data --dataset omniglot --num-ways 5 --num-shots 1 --us
 ```
 The meta-training script creates a configuration file you can use to meta-test your model. You can use [`test.py`](test.py) to meta-test your model:
 ```bash
-python test.py /path/to/results
+python test.py /path/to/results/config.json
 ```
 
 ### References

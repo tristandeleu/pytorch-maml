@@ -41,7 +41,7 @@ def main(args):
         transform = Compose([Resize(28), ToTensor()])
         meta_test_dataset = Omniglot(config['folder'], transform=transform,
             target_transform=Categorical(config['num_ways']),
-            num_classes_per_task=config['num_ways'], meta_train=True,
+            num_classes_per_task=config['num_ways'], meta_test=True,
             dataset_transform=dataset_transform, download=True)
         model = ModelConvOmniglot(config['num_ways'],
                                   hidden_size=config['hidden_size'])
@@ -51,7 +51,7 @@ def main(args):
         transform = Compose([Resize(84), ToTensor()])
         meta_test_dataset = MiniImagenet(config['folder'], transform=transform,
             target_transform=Categorical(config['num_ways']),
-            num_classes_per_task=config['num_ways'], meta_train=True,
+            num_classes_per_task=config['num_ways'], meta_test=True,
             dataset_transform=dataset_transform, download=True)
         model = ModelConvMiniImagenet(config['num_ways'],
                                       hidden_size=config['hidden_size'])

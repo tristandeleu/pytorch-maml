@@ -14,6 +14,7 @@ from torchvision.transforms import ToTensor, Resize, Compose
 
 from maml.model import ModelConvOmniglot, ModelConvMiniImagenet, ModelMLPSinusoid
 from maml.metalearners import ModelAgnosticMetaLearning
+from maml.utils import ToTensor1D
 
 def main(args):
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
@@ -43,7 +44,7 @@ def main(args):
                                       num_test_per_class=args.num_shots_test)
     class_augmentations = [Rotation([90, 180, 270])]
     if args.dataset == 'sinusoid':
-        transform = ToTensor()
+        transform = ToTensor1D()
 
         meta_train_dataset = Sinusoid(args.num_shots + args.num_shots_test,
             num_tasks=1000000, transform=transform, target_transform=transform,

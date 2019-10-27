@@ -94,7 +94,7 @@ class MetaMLPModel(MetaModule):
             MetaSequential(OrderedDict([
                 ('linear', MetaLinear(hidden_size, layer_sizes[i + 1], bias=True)),
                 ('relu', nn.ReLU())
-            ])))] for (i, hidden_size) in enumerate(layer_sizes[:-1])))
+            ]))) for (i, hidden_size) in enumerate(layer_sizes[:-1])]))
         self.classifier = MetaLinear(hidden_sizes[-1], out_features, bias=True)
 
     def forward(self, inputs, params=None):
@@ -112,3 +112,6 @@ def ModelConvMiniImagenet(out_features, hidden_size=64):
 
 def ModelMLPSinusoid(hidden_sizes=[40, 40]):
     return MetaMLPModel(1, 1, hidden_sizes)
+
+if __name__ == '__main__':
+    model = ModelMLPSinusoid()

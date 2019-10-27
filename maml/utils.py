@@ -67,3 +67,15 @@ def tensors_to_device(tensors, device=torch.device('cpu')):
             for (name, tensor) in tensors.items()])
     else:
         raise NotImplementedError()
+
+class ToTensor1D(object):
+    """Convert a `numpy.ndarray` to tensor. Unlike `ToTensor` from torchvision,
+    this converts numpy arrays regardless of the number of dimensions.
+
+    Converts automatically the array to `float32`.
+    """
+    def __call__(self, array):
+        return torch.from_numpy(array.astype('float32'))
+
+    def __repr__(self):
+        return self.__class__.__name__ + '()'

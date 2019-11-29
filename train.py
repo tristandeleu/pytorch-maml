@@ -105,7 +105,7 @@ def main(args):
         first_order=args.first_order, num_adaptation_steps=args.num_steps,
         step_size=args.step_size, loss_function=loss_function, device=device)
 
-    best_val_accuracy = None
+    best_value = None
 
     # Training loop
     epoch_desc = 'Epoch {{0: <{0}d}}'.format(1 + int(math.log10(args.num_epochs)))
@@ -117,12 +117,20 @@ def main(args):
                                        verbose=args.verbose,
                                        desc=epoch_desc.format(epoch + 1))
 
-        if (best_val_accuracy is None) \
-                or (best_val_accuracy < results['accuracies_after']):
-            best_val_accuracy = results['accuracies_after']
-            if args.output_folder is not None:
-                with open(args.model_path, 'wb') as f:
-                    torch.save(model.state_dict(), f)
+        # Save best model
+        if (best_value is None) or (('accuracies_after' in results)
+                and (best_value < results['accuracies_after'])):
+            best_value = results['accuracies_after']
+            save_model = True
+        elif (best_value is None) or (best_value > results['mean_outer_loss']):
+            best_value = results['mean_outer_loss']
+            save_model = True
+        else:
+            save_model = False
+
+        if save_model and (args.output_folder is not None):
+            with open(args.model_path, 'wb') as f:
+                torch.save(model.state_dict(), f)
 
     if hasattr(meta_train_dataset, 'close'):
         meta_train_dataset.close()

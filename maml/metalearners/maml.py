@@ -219,12 +219,11 @@ class ModelAgnosticMetaLearning(object):
                     postfix['accuracy'] = '{0:.4f}'.format(mean_accuracy)
                 pbar.set_postfix(**postfix)
 
-        results = {
-            'mean_outer_loss': mean_outer_loss,
-            'accuracies_after': mean_accuracy
-        }
+        mean_results = {'mean_outer_loss': mean_outer_loss}
+        if 'accuracies_after' in results:
+            mean_results['accuracies_after'] = mean_accuracy
 
-        return results
+        return mean_results
 
     def evaluate_iter(self, dataloader, max_batches=500):
         num_batches = 0

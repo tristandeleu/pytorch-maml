@@ -1,5 +1,5 @@
 # Model-Agnostic Meta-Learning
-[![Build Status](https://travis-ci.com/tristandeleu/pytorch-maml.svg?branch=master)](https://travis-ci.com/tristandeleu/pytorch-maml) [![Documentation](https://img.shields.io/badge/1.2-PyTorch-EE4C2C)](https://pytorch.org/)
+[![Build Status](https://travis-ci.com/tristandeleu/pytorch-maml.svg?branch=master)](https://travis-ci.com/tristandeleu/pytorch-maml) [![Documentation](https://img.shields.io/badge/1.3-PyTorch-EE4C2C)](https://pytorch.org/)
 
 An implementation of Model-Agnostic Meta-Learning (MAML) in [PyTorch](https://pytorch.org/) with [Torchmeta](https://github.com/tristandeleu/pytorch-meta).
 
@@ -17,9 +17,9 @@ pip install -r requirements.txt
 
 #### Requirements
  - Python 3.5 or above
- - PyTorch 1.2
+ - PyTorch 1.3
  - Torchvision 0.4
- - Torchmeta 1.1
+ - Torchmeta 1.2
 
 ### Usage
 You can use [`train.py`](train.py) to meta-train your model with MAML. For example, to run MAML on Omniglot 1-shot 5-way with default parameters from the original paper:

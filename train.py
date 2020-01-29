@@ -1,5 +1,4 @@
 import torch
-import torch.nn.functional as F
 import math
 import os
 import time
@@ -7,14 +6,9 @@ import json
 import logging
 
 from torchmeta.utils.data import BatchMetaDataLoader
-from torchmeta.datasets import Omniglot, MiniImagenet
-from torchmeta.toy import Sinusoid
-from torchmeta.transforms import ClassSplitter, Categorical, Rotation
-from torchvision.transforms import ToTensor, Resize, Compose
 
-from maml.model import ModelConvOmniglot, ModelConvMiniImagenet, ModelMLPSinusoid
+from maml.datasets import get_benchmark_by_name
 from maml.metalearners import ModelAgnosticMetaLearning
-from maml.utils import ToTensor1D
 
 def main(args):
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
@@ -39,79 +33,43 @@ def main(args):
         logging.info('Saving configuration file in `{0}`'.format(
                      os.path.abspath(os.path.join(folder, 'config.json'))))
 
-    dataset_transform = ClassSplitter(shuffle=True,
-                                      num_train_per_class=args.num_shots,
-                                      num_test_per_class=args.num_shots_test)
-    class_augmentations = [Rotation([90, 180, 270])]
-    if args.dataset == 'sinusoid':
-        transform = ToTensor1D()
+    benchmark = get_benchmark_by_name(args.dataset,
+                                      args.folder,
+                                      args.num_ways,
+                                      args.num_shots,
+                                      args.num_shots_test,
+                                      hidden_size=args.hidden_size)
 
-        meta_train_dataset = Sinusoid(args.num_shots + args.num_shots_test,
-            num_tasks=1000000, transform=transform, target_transform=transform,
-            dataset_transform=dataset_transform)
-        meta_val_dataset = Sinusoid(args.num_shots + args.num_shots_test,
-            num_tasks=1000000, transform=transform, target_transform=transform,
-            dataset_transform=dataset_transform)
+    meta_train_dataloader = BatchMetaDataLoader(benchmark.meta_train_dataset,
+                                                batch_size=args.batch_size,
+                                                shuffle=True,
+                                                num_workers=args.num_workers,
+                                                pin_memory=True)
+    meta_val_dataloader = BatchMetaDataLoader(benchmark.meta_val_dataset,
+                                              batch_size=args.batch_size,
+                                              shuffle=True,
+                                              num_workers=args.num_workers,
+                                              pin_memory=True)
 
-        model = ModelMLPSinusoid(hidden_sizes=[40, 40])
-        loss_function = F.mse_loss
-
-    elif args.dataset == 'omniglot':
-        transform = Compose([Resize(28), ToTensor()])
-
-        meta_train_dataset = Omniglot(args.folder, transform=transform,
-            target_transform=Categorical(args.num_ways),
-            num_classes_per_task=args.num_ways, meta_train=True,
-            class_augmentations=class_augmentations,
-            dataset_transform=dataset_transform, download=True)
-        meta_val_dataset = Omniglot(args.folder, transform=transform,
-            target_transform=Categorical(args.num_ways),
-            num_classes_per_task=args.num_ways, meta_val=True,
-            class_augmentations=class_augmentations,
-            dataset_transform=dataset_transform)
-
-        model = ModelConvOmniglot(args.num_ways, hidden_size=args.hidden_size)
-        loss_function = F.cross_entropy
-
-    elif args.dataset == 'miniimagenet':
-        transform = Compose([Resize(84), ToTensor()])
-
-        meta_train_dataset = MiniImagenet(args.folder, transform=transform,
-            target_transform=Categorical(args.num_ways),
-            num_classes_per_task=args.num_ways, meta_train=True,
-            class_augmentations=class_augmentations,
-            dataset_transform=dataset_transform, download=True)
-        meta_val_dataset = MiniImagenet(args.folder, transform=transform,
-            target_transform=Categorical(args.num_ways),
-            num_classes_per_task=args.num_ways, meta_val=True,
-            class_augmentations=class_augmentations,
-            dataset_transform=dataset_transform)
-
-        model = ModelConvMiniImagenet(args.num_ways, hidden_size=args.hidden_size)
-        loss_function = F.cross_entropy
-
-    else:
-        raise NotImplementedError('Unknown dataset `{0}`.'.format(args.dataset))
-
-    meta_train_dataloader = BatchMetaDataLoader(meta_train_dataset,
-        batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
-        pin_memory=True)
-    meta_val_dataloader = BatchMetaDataLoader(meta_val_dataset,
-        batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
-        pin_memory=True)
-
-    meta_optimizer = torch.optim.Adam(model.parameters(), lr=args.meta_lr)
-    metalearner = ModelAgnosticMetaLearning(model, meta_optimizer,
-        first_order=args.first_order, num_adaptation_steps=args.num_steps,
-        step_size=args.step_size, loss_function=loss_function, device=device)
+    meta_optimizer = torch.optim.Adam(benchmark.model.parameters(), lr=args.meta_lr)
+    metalearner = ModelAgnosticMetaLearning(benchmark.model,
+                                            meta_optimizer,
+                                            first_order=args.first_order,
+                                            num_adaptation_steps=args.num_steps,
+                                            step_size=args.step_size,
+                                            loss_function=benchmark.loss_function,
+                                            device=device)
 
     best_value = None
 
     # Training loop
     epoch_desc = 'Epoch {{0: <{0}d}}'.format(1 + int(math.log10(args.num_epochs)))
     for epoch in range(args.num_epochs):
-        metalearner.train(meta_train_dataloader, max_batches=args.num_batches,
-                          verbose=args.verbose, desc='Training', leave=False)
+        metalearner.train(meta_train_dataloader,
+                          max_batches=args.num_batches,
+                          verbose=args.verbose,
+                          desc='Training',
+                          leave=False)
         results = metalearner.evaluate(meta_val_dataloader,
                                        max_batches=args.num_batches,
                                        verbose=args.verbose,
@@ -130,7 +88,7 @@ def main(args):
 
         if save_model and (args.output_folder is not None):
             with open(args.model_path, 'wb') as f:
-                torch.save(model.state_dict(), f)
+                torch.save(benchmark.model.state_dict(), f)
 
     if hasattr(meta_train_dataset, 'close'):
         meta_train_dataset.close()

@@ -4,14 +4,9 @@ import os
 import json
 
 from torchmeta.utils.data import BatchMetaDataLoader
-from torchmeta.datasets import Omniglot, MiniImagenet
-from torchmeta.toy import Sinusoid
-from torchmeta.transforms import ClassSplitter, Categorical
-from torchvision.transforms import ToTensor, Resize, Compose
 
-from maml.model import ModelConvOmniglot, ModelConvMiniImagenet, ModelMLPSinusoid
+from maml.datasets import get_benchmark_by_name
 from maml.metalearners import ModelAgnosticMetaLearning
-from maml.utils import ToTensor1D
 
 def main(args):
     with open(args.config, 'r') as f:
@@ -26,49 +21,27 @@ def main(args):
     device = torch.device('cuda' if args.use_cuda
                           and torch.cuda.is_available() else 'cpu')
 
-    dataset_transform = ClassSplitter(shuffle=True,
-                                      num_train_per_class=config['num_shots'],
-                                      num_test_per_class=config['num_shots_test'])
-    if config['dataset'] == 'sinusoid':
-        transform = ToTensor1D()
-        meta_test_dataset = Sinusoid(config['num_shots'] + config['num_shots_test'],
-            num_tasks=1000000, transform=transform, target_transform=transform,
-            dataset_transform=dataset_transform)
-        model = ModelMLPSinusoid(hidden_sizes=[40, 40])
-        loss_function = F.mse_loss
-
-    elif config['dataset'] == 'omniglot':
-        transform = Compose([Resize(28), ToTensor()])
-        meta_test_dataset = Omniglot(config['folder'], transform=transform,
-            target_transform=Categorical(config['num_ways']),
-            num_classes_per_task=config['num_ways'], meta_test=True,
-            dataset_transform=dataset_transform, download=True)
-        model = ModelConvOmniglot(config['num_ways'],
-                                  hidden_size=config['hidden_size'])
-        loss_function = F.cross_entropy
-
-    elif config['dataset'] == 'miniimagenet':
-        transform = Compose([Resize(84), ToTensor()])
-        meta_test_dataset = MiniImagenet(config['folder'], transform=transform,
-            target_transform=Categorical(config['num_ways']),
-            num_classes_per_task=config['num_ways'], meta_test=True,
-            dataset_transform=dataset_transform, download=True)
-        model = ModelConvMiniImagenet(config['num_ways'],
+    benchmark = get_benchmark_by_name(config['dataset'],
+                                      config['folder'],
+                                      config['num_ways'],
+                                      config['num_shots'],
+                                      config['num_shots_test'],
                                       hidden_size=config['hidden_size'])
-        loss_function = F.cross_entropy
-
-    else:
-        raise NotImplementedError('Unknown dataset `{0}`.'.format(config['dataset']))
 
     with open(config['model_path'], 'rb') as f:
-        model.load_state_dict(torch.load(f, map_location=device))
+        benchmark.model.load_state_dict(torch.load(f, map_location=device))
 
-    meta_test_dataloader = BatchMetaDataLoader(meta_test_dataset,
-        batch_size=config['batch_size'], shuffle=True,
-        num_workers=args.num_workers, pin_memory=True)
-    metalearner = ModelAgnosticMetaLearning(model,
-        first_order=config['first_order'], num_adaptation_steps=config['num_steps'],
-        step_size=config['step_size'], loss_function=loss_function, device=device)
+    meta_test_dataloader = BatchMetaDataLoader(benchmark.meta_test_dataset,
+                                               batch_size=config['batch_size'],
+                                               shuffle=True,
+                                               num_workers=args.num_workers,
+                                               pin_memory=True)
+    metalearner = ModelAgnosticMetaLearning(benchmark.model,
+                                            first_order=config['first_order'],
+                                            num_adaptation_steps=config['num_steps'],
+                                            step_size=config['step_size'],
+                                            loss_function=benchmark.loss_function,
+                                            device=device)
 
     results = metalearner.evaluate(meta_test_dataloader,
                                    max_batches=config['num_batches'],

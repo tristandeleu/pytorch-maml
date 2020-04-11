@@ -90,9 +90,9 @@ def main(args):
             with open(args.model_path, 'wb') as f:
                 torch.save(benchmark.model.state_dict(), f)
 
-    if hasattr(meta_train_dataset, 'close'):
-        meta_train_dataset.close()
-        meta_val_dataset.close()
+    if hasattr(benchmark.meta_train_dataset, 'close'):
+        benchmark.meta_train_dataset.close()
+        benchmark.meta_val_dataset.close()
 
 
 if __name__ == '__main__':

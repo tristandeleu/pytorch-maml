@@ -76,10 +76,10 @@ def main(args):
                                        desc=epoch_desc.format(epoch + 1))
 
         # Save best model
-        if (best_value is None) or (('accuracies_after' in results)
-                and (best_value < results['accuracies_after'])):
-            best_value = results['accuracies_after']
-            save_model = True
+        if 'accuracies_after' in results:
+            if (best_value is None) or (best_value < results['accuracies_after']):
+                best_value = results['accuracies_after']
+                save_model = True
         elif (best_value is None) or (best_value > results['mean_outer_loss']):
             best_value = results['mean_outer_loss']
             save_model = True

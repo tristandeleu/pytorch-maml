@@ -4,7 +4,8 @@ import numpy as np
 from tqdm import tqdm
 
 from collections import OrderedDict
-from maml.utils import update_parameters, tensors_to_device, compute_accuracy
+from torchmeta.utils import gradient_update_parameters
+from maml.utils import tensors_to_device, compute_accuracy
 
 __all__ = ['ModelAgnosticMetaLearning', 'MAML', 'FOMAML']
 
@@ -160,7 +161,7 @@ class ModelAgnosticMetaLearning(object):
                 results['accuracy_before'] = compute_accuracy(logits, targets)
 
             self.model.zero_grad()
-            params = update_parameters(self.model, inner_loss,
+            params = gradient_update_parameters(self.model, inner_loss,
                 step_size=step_size, params=params,
                 first_order=(not self.model.training) or first_order)
 

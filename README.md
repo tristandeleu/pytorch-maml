@@ -16,10 +16,10 @@ pip install -r requirements.txt
 ```
 
 #### Requirements
- - Python 3.5 or above
+ - Python 3.6 or above
  - PyTorch 1.5
  - Torchvision 0.6
- - Torchmeta 1.4.3
+ - Torchmeta 1.4.6
 
 ### Usage
 You can use [`train.py`](train.py) to meta-train your model with MAML. For example, to run MAML on Omniglot 1-shot 5-way with default parameters from the original paper:
